@@ -13,7 +13,7 @@ export async function searchMemory(
   env: Env,
   user_id: string,
   input: z.infer<typeof searchMemorySchema>
-): Promise<EntryRow[]> {
+): Promise<{ results: EntryRow[]; _debug: { vectorize_matches: number; user_id: string; filter: VectorizeVectorMetadataFilter } }> {
   // Generate embedding for the query
   const embedding = await generateEmbedding(env.AI, input.query);
 
@@ -30,12 +30,15 @@ export async function searchMemory(
     returnMetadata: 'none',
   });
 
-  if (!vectorResults.matches || vectorResults.matches.length === 0) {
-    return [];
+  const vectorize_matches = vectorResults.matches?.length ?? 0;
+
+  if (vectorize_matches === 0) {
+    return { results: [], _debug: { vectorize_matches, user_id, filter } };
   }
 
   const ids = vectorResults.matches.map((m) => m.id);
 
   // Fetch full entries from D1 (also re-checks user_id)
-  return getEntriesByIds(env.DB, ids, user_id);
+  const results = await getEntriesByIds(env.DB, ids, user_id);
+  return { results, _debug: { vectorize_matches, user_id, filter } };
 }
