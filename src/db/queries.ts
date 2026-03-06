@@ -95,3 +95,45 @@ export async function archiveHandoff(
     .run();
   return (result.meta.changes ?? 0) > 0;
 }
+
+export async function updateEntry(
+  db: D1Database,
+  id: string,
+  user_id: string,
+  fields: { tags?: string | null; content?: string }
+): Promise<EntryRow | null> {
+  const sets: string[] = ['updated_at = ?'];
+  const binds: unknown[] = [Date.now()];
+
+  if ('tags' in fields) {
+    sets.push('tags = ?');
+    binds.push(fields.tags ?? null);
+  }
+  if (fields.content !== undefined) {
+    sets.push('content = ?');
+    binds.push(fields.content);
+  }
+
+  binds.push(id, user_id);
+
+  const result = await db
+    .prepare(
+      `UPDATE entries SET ${sets.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`
+    )
+    .bind(...binds)
+    .first<EntryRow>();
+
+  return result ?? null;
+}
+
+export async function deleteEntry(
+  db: D1Database,
+  id: string,
+  user_id: string
+): Promise<boolean> {
+  const result = await db
+    .prepare(`DELETE FROM entries WHERE id = ? AND user_id = ?`)
+    .bind(id, user_id)
+    .run();
+  return (result.meta.changes ?? 0) > 0;
+}
