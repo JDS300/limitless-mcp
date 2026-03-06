@@ -5,6 +5,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { storeEntry, storeEntrySchema } from './tools/store';
 import { searchMemory, searchMemorySchema } from './tools/search';
 import { getHandoffs, archiveHandoffEntry, archiveHandoffSchema } from './tools/handoffs';
+import { deleteEntryTool, deleteEntrySchema } from './tools/delete';
+import { updateEntryTool, updateEntrySchema } from './tools/update';
 
 interface AuthProps extends Record<string, unknown> {
   claims: {
@@ -63,6 +65,30 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
       archiveHandoffSchema.shape,
       async (input: any) => {
         const result = await archiveHandoffEntry(this.env, userId, input);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+        };
+      }
+    );
+
+    this.server.tool(
+      'delete_entry',
+      'Permanently delete an entry by ID',
+      deleteEntrySchema.shape,
+      async (input: any) => {
+        const result = await deleteEntryTool(this.env, userId, input);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+        };
+      }
+    );
+
+    this.server.tool(
+      'update_entry',
+      'Update tags or content of an existing entry',
+      updateEntrySchema.shape,
+      async (input: any) => {
+        const result = await updateEntryTool(this.env, userId, input);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
