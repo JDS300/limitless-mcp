@@ -35,18 +35,24 @@ export async function updateEntryTool(
 
   // Re-embed in Vectorize only if content changed
   if (input.content !== undefined) {
-    const embedding = await generateEmbedding(env.AI, input.content);
-    await env.VECTORIZE.upsert([
-      {
-        id: input.id,
-        values: embedding,
-        metadata: {
-          user_id,
-          type: entry.type,
-          status: entry.status,
+    try {
+      const embedding = await generateEmbedding(env.AI, input.content);
+      await env.VECTORIZE.upsert([
+        {
+          id: input.id,
+          values: embedding,
+          metadata: {
+            user_id,
+            type: entry.type,
+            status: entry.status,
+          },
         },
-      },
-    ]);
+      ]);
+    } catch (err) {
+      throw new Error(
+        `Entry ${input.id} updated in D1 but vector re-embedding failed: ${String(err)}`
+      );
+    }
   }
 
   return {
