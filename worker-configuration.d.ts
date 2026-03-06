@@ -9,6 +9,9 @@ declare namespace Cloudflare {
 		DB: D1Database;
 		VECTORIZE: VectorizeIndex;
 		AI: Ai;
+		GOOGLE_CLIENT_ID: string;
+		GOOGLE_CLIENT_SECRET: string;
+		COOKIE_SECRET: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
