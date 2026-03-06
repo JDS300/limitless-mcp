@@ -18,3 +18,12 @@ binding = "AI"
 [[kv_namespaces]]
 binding = "OAUTH_KV"
 id = "203e8ef6987747d4869551b939b56639"
+
+[durable_objects]
+bindings = [
+  { name = "MCP_OBJECT", class_name = "LimitlessMCP" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LimitlessMCP"]
