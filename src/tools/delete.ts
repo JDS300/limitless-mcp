@@ -21,7 +21,11 @@ export async function deleteEntryTool(
   }
 
   // Remove vector from Vectorize
-  await env.VECTORIZE.deleteByIds([input.id]);
+  try {
+    await env.VECTORIZE.deleteByIds([input.id]);
+  } catch (err) {
+    throw new Error(`Entry ${input.id} deleted from D1 but vector removal failed: ${String(err)}`);
+  }
 
   return {
     success: true,
