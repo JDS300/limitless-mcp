@@ -2,3 +2,15 @@ name = "limitless-mcp"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "limitless-db"
+database_id = "c8783c33-8a70-4da0-95cd-69c77bf8a315"
+
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "limitless-index"
+
+[ai]
+binding = "AI"
