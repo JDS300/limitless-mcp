@@ -33,18 +33,25 @@ export async function storeEntry(
     tags: input.tags ?? null,
   });
 
-  // Upsert vector into Vectorize
-  await env.VECTORIZE.upsert([
-    {
-      id,
-      values: embedding,
-      metadata: {
-        user_id,
-        type: input.type,
-        status,
+  // Upsert vector into Vectorize — if this fails, delete the D1 row to keep stores in sync
+  try {
+    await env.VECTORIZE.upsert([
+      {
+        id,
+        values: embedding,
+        metadata: {
+          user_id,
+          type: input.type,
+          status,
+        },
       },
-    },
-  ]);
+    ]);
+  } catch (err) {
+    await env.DB.prepare('DELETE FROM entries WHERE id = ? AND user_id = ?')
+      .bind(id, user_id)
+      .run();
+    throw new Error(`Failed to store vector embedding; entry rolled back. ${String(err)}`);
+  }
 
   return {
     id,

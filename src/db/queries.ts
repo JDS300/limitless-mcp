@@ -21,7 +21,7 @@ export async function insertEntry(
     id: string;
     user_id: string;
     type: 'context' | 'memory' | 'handoff';
-    status: string;
+    status: 'active' | 'needs_action' | 'actioned';
     title: string | null;
     content: string;
     tags: string | null;
@@ -60,7 +60,10 @@ export async function getEntriesByIds(
     )
     .bind(...ids, user_id)
     .all<EntryRow>();
-  return result.results;
+  // Re-sort to preserve the caller's order (e.g. Vectorize relevance rank).
+  // SQL IN (...) does not guarantee ordering.
+  const byId = new Map(result.results.map((row) => [row.id, row]));
+  return ids.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
 }
 
 export async function getActiveHandoffs(
