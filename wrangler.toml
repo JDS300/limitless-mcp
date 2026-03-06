@@ -14,3 +14,7 @@ index_name = "limitless-index"
 
 [ai]
 binding = "AI"
+
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "203e8ef6987747d4869551b939b56639"

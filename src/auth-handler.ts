@@ -15,8 +15,13 @@ interface GoogleUserInfo {
   name: string;
 }
 
-export class GoogleAuthHandler {
-  static async fetch(request: Request, env: Env, ctx: ExecutionContext, oauthHelpers: OAuthHelpers): Promise<Response> {
+// OAuthProvider injects helpers into env.OAUTH_PROVIDER before calling this handler
+type EnvWithOAuth = Env & { OAUTH_PROVIDER: OAuthHelpers };
+
+// ExportedHandler object — compatible with OAuthProvider's defaultHandler requirement
+export const GoogleAuthHandler = {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const oauthHelpers = (env as EnvWithOAuth).OAUTH_PROVIDER;
     const url = new URL(request.url);
 
     if (url.pathname === '/authorize') {
@@ -28,8 +33,8 @@ export class GoogleAuthHandler {
     }
 
     return new Response('Not found', { status: 404 });
-  }
-}
+  },
+};
 
 async function handleAuthorize(
   request: Request,

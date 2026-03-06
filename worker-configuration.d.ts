@@ -9,6 +9,7 @@ declare namespace Cloudflare {
 		DB: D1Database;
 		VECTORIZE: VectorizeIndex;
 		AI: Ai;
+		OAUTH_KV: KVNamespace;
 		GOOGLE_CLIENT_ID: string;
 		GOOGLE_CLIENT_SECRET: string;
 		COOKIE_SECRET: string;
