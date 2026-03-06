@@ -1,4 +1,4 @@
-import type { UserRow, EntryRow } from './schema';
+import type { EntryRow } from './schema';
 
 export async function upsertUser(
   db: D1Database,
@@ -20,7 +20,7 @@ export async function insertEntry(
   entry: {
     id: string;
     user_id: string;
-    type: string;
+    type: 'context' | 'memory' | 'handoff';
     status: string;
     title: string | null;
     content: string;
