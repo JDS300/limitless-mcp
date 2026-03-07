@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { generateEmbedding } from '../embeddings';
 import { insertEntry } from '../db/queries';
+import { deriveUserKey, encryptContent } from '../crypto';
 
 export const storeEntrySchema = z.object({
   type: z.enum(['context', 'memory', 'handoff']),
@@ -19,8 +20,12 @@ export async function storeEntry(
   // Determine initial status
   const status = input.type === 'handoff' ? 'needs_action' : 'active';
 
-  // Generate embedding
+  // Generate embedding on plaintext (vectors must represent real semantics)
   const embedding = await generateEmbedding(env.AI, input.content);
+
+  // Encrypt content before storing in D1
+  const key = await deriveUserKey(`google:${user_id}`, env.SERVER_ENCRYPTION_SECRET);
+  const encryptedContent = await encryptContent(input.content, key);
 
   // Insert into D1
   await insertEntry(env.DB, {
@@ -29,7 +34,7 @@ export async function storeEntry(
     type: input.type,
     status,
     title: input.title ?? null,
-    content: input.content,
+    content: encryptedContent,
     tags: input.tags ?? null,
   });
 

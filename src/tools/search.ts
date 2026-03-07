@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { generateEmbedding } from '../embeddings';
 import { getEntriesByIds } from '../db/queries';
 import type { EntryRow } from '../db/schema';
+import { deriveUserKey, safeDecrypt } from '../crypto';
 
 export const searchMemorySchema = z.object({
   query: z.string().min(1),
@@ -40,5 +41,12 @@ export async function searchMemory(
 
   // Fetch full entries from D1 (also re-checks user_id)
   const results = await getEntriesByIds(env.DB, ids, user_id);
-  return { results, _debug: { vectorize_matches, user_id, filter } };
+
+  // Decrypt content before returning
+  const key = await deriveUserKey(`google:${user_id}`, env.SERVER_ENCRYPTION_SECRET);
+  const decrypted = await Promise.all(
+    results.map(async (r) => ({ ...r, content: await safeDecrypt(r.content, key) }))
+  );
+
+  return { results: decrypted, _debug: { vectorize_matches, user_id, filter } };
 }

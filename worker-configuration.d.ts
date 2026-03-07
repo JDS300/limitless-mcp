@@ -13,6 +13,7 @@ declare namespace Cloudflare {
 		GOOGLE_CLIENT_ID: string;
 		GOOGLE_CLIENT_SECRET: string;
 		COOKIE_SECRET: string;
+		SERVER_ENCRYPTION_SECRET: string;
 	}
 }
 interface Env extends Cloudflare.Env {}

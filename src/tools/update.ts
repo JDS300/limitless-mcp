@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { updateEntry } from '../db/queries';
 import { generateEmbedding } from '../embeddings';
 import type { EntryRow } from '../db/schema';
+import { deriveUserKey, encryptContent, safeDecrypt } from '../crypto';
 
 export const updateEntrySchema = z.object({
   id: z.string().uuid(),
@@ -22,8 +23,13 @@ export async function updateEntryTool(
     return { success: false, entry: null, message: 'No fields to update' };
   }
 
+  const key = await deriveUserKey(`google:${user_id}`, env.SERVER_ENCRYPTION_SECRET);
+
+  // Encrypt content before storing
+  if (input.content !== undefined) fields.content = await encryptContent(input.content, key);
+
   // Update D1
-  const entry = await updateEntry(env.DB, input.id, user_id, fields);
+  let entry = await updateEntry(env.DB, input.id, user_id, fields);
 
   if (!entry) {
     return {
@@ -54,6 +60,9 @@ export async function updateEntryTool(
       );
     }
   }
+
+  // Decrypt content before returning to caller
+  if (entry) entry = { ...entry, content: await safeDecrypt(entry.content, key) };
 
   return {
     success: true,

@@ -1,12 +1,17 @@
 import { z } from 'zod';
 import { getActiveHandoffs, archiveHandoff } from '../db/queries';
 import type { EntryRow } from '../db/schema';
+import { deriveUserKey, safeDecrypt } from '../crypto';
 
 export async function getHandoffs(
   env: Env,
   user_id: string
 ): Promise<EntryRow[]> {
-  return getActiveHandoffs(env.DB, user_id);
+  const rows = await getActiveHandoffs(env.DB, user_id);
+  const key = await deriveUserKey(`google:${user_id}`, env.SERVER_ENCRYPTION_SECRET);
+  return Promise.all(
+    rows.map(async (r) => ({ ...r, content: await safeDecrypt(r.content, key) }))
+  );
 }
 
 export const archiveHandoffSchema = z.object({
