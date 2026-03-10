@@ -2,9 +2,13 @@
 
 A portable, self-hosted memory layer for AI tools — store context, memories, and handoffs once and access them from Claude, ChatGPT, or any MCP-compatible client.
 
+For more information, visit [limitless-ai.dev](https://limitless-ai.dev).
+
 ## How it works
 
 Limitless runs as a Cloudflare Worker with D1 (SQLite) for structured storage and Vectorize for semantic search. You authenticate with Google OAuth, then store entries that any connected AI client can retrieve via MCP. Each user's data is encrypted at rest with a per-user AES-GCM key derived from your `SERVER_ENCRYPTION_SECRET`.
+
+For a visual overview, see the [architecture diagram](https://limitless-ai.dev/architecture).
 
 ---
 
