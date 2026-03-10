@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "limitless-db"
-database_id = "c8783c33-8a70-4da0-95cd-69c77bf8a315"
+database_id = "YOUR_D1_DATABASE_ID"
 
 [[vectorize]]
 binding = "VECTORIZE"
@@ -17,7 +17,7 @@ binding = "AI"
 
 [[kv_namespaces]]
 binding = "OAUTH_KV"
-id = "203e8ef6987747d4869551b939b56639"
+id = "YOUR_KV_NAMESPACE_ID"
 
 [durable_objects]
 bindings = [

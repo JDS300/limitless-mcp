@@ -21,8 +21,6 @@ Use **GitHub's private vulnerability reporting**: go to the Security tab of this
 
 Please do not open a public issue for security vulnerabilities.
 
-> **Note for repo maintainer:** Private vulnerability reporting must be enabled in repo Settings → Security → "Private vulnerability reporting" (one-click toggle).
-
 ## Response Expectations
 
 This is a maintainer-run project, not a dedicated security team. You can expect:
