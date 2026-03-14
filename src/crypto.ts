@@ -26,15 +26,15 @@ const IV_LENGTH = 12; // 96-bit IV, standard for AES-GCM
 /**
  * Derives a per-user AES-GCM CryptoKey using HKDF.
  *
- * Key material: HMAC-SHA256(SERVER_ENCRYPTION_SECRET, userSub)
+ * Key material: HMAC-SHA256(SERVER_ENCRYPTION_SECRET, saltString)
  * This is deterministic — the same user always gets the same key,
  * no key storage required.
  *
- * @param userSub - The user's Google OAuth subject ID (from JWT 'sub' claim)
+ * @param saltString - The full composite string used as HKDF salt, e.g. `google:userId`
  * @param serverSecret - From env.SERVER_ENCRYPTION_SECRET (Cloudflare Secret)
  */
 export async function deriveUserKey(
-  userSub: string,
+  saltString: string,
   serverSecret: string
 ): Promise<CryptoKey> {
   const encoder = new TextEncoder();
@@ -48,12 +48,12 @@ export async function deriveUserKey(
     ["deriveKey"]
   );
 
-  // Derive a per-user AES-GCM key using the user's sub as salt
+  // Derive a per-user AES-GCM key using the composite salt string
   return crypto.subtle.deriveKey(
     {
       name: "HKDF",
       hash: "SHA-256",
-      salt: encoder.encode(userSub),
+      salt: encoder.encode(saltString),
       info: encoder.encode("limitless-content-encryption-v1"),
     },
     keyMaterial,
@@ -150,5 +150,67 @@ export async function safeDecrypt(value: string, key: CryptoKey): Promise<string
     return await decryptContent(value, key);
   } catch {
     return value; // plaintext fallback during migration window
+  }
+}
+
+/**
+ * Issues a signed admin session token using HMAC-SHA256.
+ * Format: base64(payload) + "." + base64(signature)
+ * Default TTL: 8 hours.
+ *
+ * @param userId  - The authenticated user's Google sub
+ * @param serverSecret - env.SERVER_ENCRYPTION_SECRET
+ * @param ttlMs   - Token lifetime in milliseconds (default 8 hours)
+ */
+export async function signAdminToken(
+  userId: string,
+  serverSecret: string,
+  ttlMs = 8 * 60 * 60 * 1000
+): Promise<string> {
+  const exp = Date.now() + ttlMs;
+  const payload = btoa(JSON.stringify({ userId, exp }));
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(serverSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sigBytes = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  const sig = btoa(String.fromCharCode(...new Uint8Array(sigBytes)));
+
+  return `${payload}.${sig}`;
+}
+
+/**
+ * Verifies an admin session token. Returns userId if valid and not expired, else null.
+ */
+export async function verifyAdminToken(
+  token: string,
+  serverSecret: string
+): Promise<string | null> {
+  const dotIndex = token.lastIndexOf('.');
+  if (dotIndex === -1) return null;
+  const payload = token.slice(0, dotIndex);
+  const sigB64  = token.slice(dotIndex + 1);
+
+  try {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(serverSecret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const sig = Uint8Array.from(atob(sigB64), (c) => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify('HMAC', key, sig, new TextEncoder().encode(payload));
+    if (!valid) return null;
+
+    const { userId, exp } = JSON.parse(atob(payload));
+    if (Date.now() > exp) return null;
+    return userId as string;
+  } catch {
+    return null;
   }
 }
