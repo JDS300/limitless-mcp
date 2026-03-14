@@ -36,6 +36,10 @@ export async function storeEntry(
     title: input.title ?? null,
     content: encryptedContent,
     tags: input.tags ?? null,
+    namespace: null,
+    pinned: 0,
+    resource_name: null,
+    resource_location: null,
   });
 
   // Upsert vector into Vectorize — if this fails, delete the D1 row to keep stores in sync
