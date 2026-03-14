@@ -60,7 +60,7 @@ export async function updateEntryTool(
             user_id,
             type: entry.type,
             status: entry.status,
-            namespace: entry.namespace ?? null,
+            ...(entry.namespace ? { namespace: entry.namespace } : {}),
           },
         },
       ]);

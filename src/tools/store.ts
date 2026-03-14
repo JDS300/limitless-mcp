@@ -57,7 +57,7 @@ export async function storeEntry(
           user_id,
           type: input.type,
           status,
-          namespace: input.namespace ?? null,
+          ...(input.namespace ? { namespace: input.namespace } : {}),
         },
       },
     ]);

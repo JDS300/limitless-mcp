@@ -50,7 +50,7 @@ export async function archiveHandoffEntry(
         user_id,
         type: 'handoff',
         status: 'actioned',
-        namespace: entry?.namespace ?? null, // carry namespace forward
+        ...(entry?.namespace ? { namespace: entry.namespace } : {}), // carry namespace forward
       },
     },
   ]);

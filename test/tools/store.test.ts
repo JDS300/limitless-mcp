@@ -27,14 +27,11 @@ describe('storeEntry', () => {
     ]);
   });
 
-  it('defaults namespace to null when not provided', async () => {
+  it('omits namespace from Vectorize metadata when not provided', async () => {
     const env = mockEnv() as any;
     await storeEntry(env, 'user1', 'google', { type: 'memory', content: 'A fact' });
-    expect(env.VECTORIZE.upsert).toHaveBeenCalledWith([
-      expect.objectContaining({
-        metadata: expect.objectContaining({ namespace: null }),
-      }),
-    ]);
+    const metadata = env.VECTORIZE.upsert.mock.calls[0][0][0].metadata;
+    expect(metadata).not.toHaveProperty('namespace');
   });
 
   it('accepts resource type with resource_name', async () => {
