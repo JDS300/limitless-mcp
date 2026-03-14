@@ -8,6 +8,7 @@ import { getHandoffs, archiveHandoffEntry, archiveHandoffSchema, getHandoffsSche
 import { deleteEntryTool, deleteEntrySchema } from './tools/delete';
 import { updateEntryTool, updateEntrySchema } from './tools/update';
 import { getPinnedContext, getPinnedContextSchema } from './tools/pinned';
+import { getResource, getResourceSchema } from './tools/resource';
 
 interface AuthProps extends Record<string, unknown> {
   claims: {
@@ -105,6 +106,16 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
       async (input: any) => {
         const results = await getPinnedContext(this.env, userId, provider, input.namespace);
         return { content: [{ type: 'text' as const, text: JSON.stringify(results) }] };
+      }
+    );
+
+    this.server.tool(
+      'get_resource',
+      'Retrieve stored resources by name or tag. Resources are prompts, templates, and other reusable artifacts.',
+      getResourceSchema.shape,
+      async (input: any) => {
+        const result = await getResource(this.env, userId, provider, input);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
       }
     );
   }
