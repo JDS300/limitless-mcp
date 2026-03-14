@@ -89,10 +89,11 @@ npx wrangler secret put SERVER_ENCRYPTION_SECRET
 | `COOKIE_ENCRYPTION_KEY` | Encrypts OAuth session cookies — generate with `openssl rand -base64 32` |
 | `SERVER_ENCRYPTION_SECRET` | Per-user AES-GCM key derivation — generate with `openssl rand -base64 32` (must differ from `COOKIE_ENCRYPTION_KEY`) |
 
-### 6. Run the database migration
+### 6. Run the database migrations
 
 ```bash
 npx wrangler d1 execute limitless-db --remote --file=migrations/0001_initial.sql
+npx wrangler d1 execute limitless-db --remote --file=migrations/0002_v2_schema.sql
 ```
 
 ### 7. Deploy
@@ -146,11 +147,13 @@ At the start of each session, retrieve my handoffs and search for relevant conte
 
 | Tool | Description |
 |------|-------------|
-| `store_entry` | Save a memory, context note, or handoff |
+| `store_entry` | Save a memory, context note, handoff, or resource entry |
 | `search_memory` | Semantic search across your stored entries |
 | `get_handoffs` | Retrieve all pending handoff items |
 | `archive_handoff` | Mark a handoff as completed |
-| `update_entry` | Update tags or content on an existing entry |
+| `get_pinned_context` | Retrieve all pinned entries (optionally filtered by namespace) |
+| `get_resource` | Look up a resource entry by name or tag |
+| `update_entry` | Update fields on an existing entry (content, tags, namespace, pinned, confirmed_at) |
 | `delete_entry` | Permanently remove an entry |
 
 ---
@@ -162,10 +165,25 @@ At the start of each session, retrieve my handoffs and search for relevant conte
 | `context` | Persistent identity — who you are, projects, specs. Rarely changes. |
 | `memory` | Accumulated knowledge — facts, preferences, decisions, insights. |
 | `handoff` | Action items — where work left off, what's next. Auto-archives on consumption. |
+| `resource` | Named resources — file paths, URIs, prompt templates, tool references. Retrieved by name or tag via `get_resource`. |
 
-Tags are free-form comma-separated strings. The `confirmed` tag has special meaning: it marks an entry as verified-current and changes how AI tools handle conflicts (see below).
+All entries optionally belong to a namespace (`work`, `personal`, or `shared`). `shared` entries appear in every namespace session. Pin important entries with `pinned: true` — they're returned by `get_pinned_context` at session start.
+
+## Staleness and confirmed_at
+
+Set `confirmed_at` (unix ms) when you've verified an entry is current. The AI treats confirmed entries as facts and hedges on everything else. For role or location entries, system prompts should instruct the AI to flag entries older than 12–18 months and ask the user to re-confirm. Use `update_entry` with a fresh `confirmed_at` to renew.
 
 ---
+
+## Admin interface
+
+Visit `/admin` on your deployed Worker to browse and manage entries without going through an AI. Authenticate with your Google account. You can filter by namespace, type, and pinned status, assign namespaces to existing entries, pin/unpin, and delete.
+
+The admin UI uses a REST API (`GET/PATCH/DELETE /api/entries`) authenticated via a short-lived HMAC session token issued at `/admin/callback`.
+
+## OAuth providers
+
+Limitless is built on Cloudflare's OAuth provider library, which supports Google, GitHub, Microsoft, LinkedIn, and others. The encryption key scheme (`{provider}:{user_id}`) is designed so adding a new provider requires no key rotation for existing users. Currently only Google is wired up; adding a second provider is a small auth-handler change.
 
 ## Conflict resolution
 
