@@ -4,15 +4,18 @@ import { McpAgent } from 'agents/mcp';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { storeEntry, storeEntrySchema } from './tools/store';
 import { searchMemory, searchMemorySchema } from './tools/search';
-import { getHandoffs, archiveHandoffEntry, archiveHandoffSchema } from './tools/handoffs';
+import { getHandoffs, archiveHandoffEntry, archiveHandoffSchema, getHandoffsSchema } from './tools/handoffs';
 import { deleteEntryTool, deleteEntrySchema } from './tools/delete';
 import { updateEntryTool, updateEntrySchema } from './tools/update';
+import { getPinnedContext, getPinnedContextSchema } from './tools/pinned';
+import { getResource, getResourceSchema } from './tools/resource';
 
 interface AuthProps extends Record<string, unknown> {
   claims: {
     sub: string;
     email: string;
     name: string;
+    provider: string;
   };
 }
 
@@ -22,13 +25,14 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
 
   async init() {
     const userId = this.props!.claims.sub;
+    const provider = this.props!.claims.provider ?? 'google';
 
     this.server.tool(
       'store_entry',
       'Store a new memory, context, or handoff entry',
       storeEntrySchema.shape,
       async (input: any) => {
-        const result = await storeEntry(this.env, userId, input);
+        const result = await storeEntry(this.env, userId, provider, input);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
@@ -40,7 +44,7 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
       'Semantic search across your stored entries',
       searchMemorySchema.shape,
       async (input: any) => {
-        const results = await searchMemory(this.env, userId, input);
+        const results = await searchMemory(this.env, userId, provider, input);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(results) }],
         };
@@ -50,9 +54,9 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
     this.server.tool(
       'get_handoffs',
       'Retrieve all active handoff entries (call at the start of a work session)',
-      {},
-      async () => {
-        const results = await getHandoffs(this.env, userId);
+      getHandoffsSchema.shape,
+      async (input: any) => {
+        const results = await getHandoffs(this.env, userId, provider, input.namespace);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(results) }],
         };
@@ -64,7 +68,7 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
       'Mark a handoff as actioned after you have acted on it',
       archiveHandoffSchema.shape,
       async (input: any) => {
-        const result = await archiveHandoffEntry(this.env, userId, input);
+        const result = await archiveHandoffEntry(this.env, userId, provider, input);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
@@ -76,7 +80,7 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
       'Permanently delete an entry by ID',
       deleteEntrySchema.shape,
       async (input: any) => {
-        const result = await deleteEntryTool(this.env, userId, input);
+        const result = await deleteEntryTool(this.env, userId, provider, input);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
@@ -88,10 +92,30 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
       'Update tags or content of an existing entry',
       updateEntrySchema.shape,
       async (input: any) => {
-        const result = await updateEntryTool(this.env, userId, input);
+        const result = await updateEntryTool(this.env, userId, provider, input);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
+      }
+    );
+
+    this.server.tool(
+      'get_pinned_context',
+      'Retrieve all pinned (always-on) entries. Call at session start with your session namespace to load persistent context.',
+      getPinnedContextSchema.shape,
+      async (input: any) => {
+        const results = await getPinnedContext(this.env, userId, provider, input.namespace);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(results) }] };
+      }
+    );
+
+    this.server.tool(
+      'get_resource',
+      'Retrieve stored resources by name or tag. Resources are prompts, templates, and other reusable artifacts.',
+      getResourceSchema.shape,
+      async (input: any) => {
+        const result = await getResource(this.env, userId, provider, input);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
       }
     );
   }

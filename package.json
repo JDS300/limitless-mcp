@@ -7,7 +7,9 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^0.3.0",
@@ -17,6 +19,7 @@
   "devDependencies": {
     "@types/node": "^25.3.5",
     "typescript": "^5.9.3",
+    "vitest": "^4.1.0",
     "wrangler": "^4.71.0"
   }
 }

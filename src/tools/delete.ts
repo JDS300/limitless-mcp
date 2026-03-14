@@ -8,6 +8,7 @@ export const deleteEntrySchema = z.object({
 export async function deleteEntryTool(
   env: Env,
   user_id: string,
+  provider: string,   // add for API consistency; not used in delete
   input: z.infer<typeof deleteEntrySchema>
 ): Promise<{ success: boolean; message: string }> {
   // Delete from D1

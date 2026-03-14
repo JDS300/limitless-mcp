@@ -6,13 +6,15 @@ import { deriveUserKey, safeDecrypt } from '../crypto';
 
 export const searchMemorySchema = z.object({
   query: z.string().min(1),
-  type: z.enum(['context', 'memory', 'handoff']).optional(),
+  type: z.enum(['context', 'memory', 'handoff', 'resource']).optional(),
   limit: z.number().int().min(1).max(20).default(5),
+  namespace: z.enum(['work', 'personal', 'shared']).optional(),
 });
 
 export async function searchMemory(
   env: Env,
   user_id: string,
+  provider: string,
   input: z.infer<typeof searchMemorySchema>
 ): Promise<{ results: EntryRow[]; _debug: { vectorize_matches: number; user_id: string; filter: VectorizeVectorMetadataFilter } }> {
   // Generate embedding for the query
@@ -22,6 +24,9 @@ export async function searchMemory(
   const filter: VectorizeVectorMetadataFilter = { user_id };
   if (input.type) {
     filter['type'] = input.type;
+  }
+  if (input.namespace) {
+    filter['namespace'] = { $in: [input.namespace, 'shared'] } as any;
   }
 
   // Query Vectorize
@@ -43,7 +48,7 @@ export async function searchMemory(
   const results = await getEntriesByIds(env.DB, ids, user_id);
 
   // Decrypt content before returning
-  const key = await deriveUserKey(`google:${user_id}`, env.SERVER_ENCRYPTION_SECRET);
+  const key = await deriveUserKey(`${provider}:${user_id}`, env.SERVER_ENCRYPTION_SECRET);
   const decrypted = await Promise.all(
     results.map(async (r) => ({ ...r, content: await safeDecrypt(r.content, key) }))
   );

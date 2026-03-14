@@ -2,6 +2,7 @@ import type {
   OAuthHelpers,
   AuthRequest,
 } from '@cloudflare/workers-oauth-provider';
+import { upsertUser } from './db/queries';
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -30,6 +31,14 @@ export const GoogleAuthHandler = {
 
     if (url.pathname === '/callback') {
       return handleCallback(request, env, ctx, oauthHelpers);
+    }
+
+    if (url.pathname === '/admin/login') {
+      return handleAdminLogin(request, env);
+    }
+    if (url.pathname === '/admin/callback') {
+      const { handleAdminCallback } = await import('./admin/callback');
+      return handleAdminCallback(request, env);
     }
 
     return new Response('Not found', { status: 404 });
@@ -111,14 +120,12 @@ async function handleCallback(
   const user: GoogleUserInfo = await userRes.json();
 
   // Upsert user in D1
-  const now = Date.now();
-  await env.DB.prepare(
-    `INSERT INTO users (id, email, name, created_at, last_seen)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET last_seen = excluded.last_seen, name = excluded.name`
-  )
-    .bind(user.sub, user.email, user.name, now, now)
-    .run();
+  await upsertUser(env.DB, {
+    id: user.sub,
+    email: user.email,
+    name: user.name,
+    provider: 'google',
+  });
 
   // Complete the OAuth flow — issue MCP token with user claims
   const { redirectTo } = await oauthHelpers.completeAuthorization({
@@ -131,11 +138,24 @@ async function handleCallback(
         sub: user.sub,
         email: user.email,
         name: user.name,
+        provider: 'google',
       },
     },
   });
 
   return Response.redirect(redirectTo, 302);
+}
+
+async function handleAdminLogin(request: Request, env: Env): Promise<Response> {
+  const origin = new URL(request.url).origin;
+  const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  googleAuthUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
+  googleAuthUrl.searchParams.set('redirect_uri', `${origin}/admin/callback`);
+  googleAuthUrl.searchParams.set('response_type', 'code');
+  googleAuthUrl.searchParams.set('scope', 'openid email profile');
+  googleAuthUrl.searchParams.set('state', 'admin');
+  googleAuthUrl.searchParams.set('access_type', 'online');
+  return Response.redirect(googleAuthUrl.toString(), 302);
 }
 
 function getCallbackUrl(request: Request): string {
