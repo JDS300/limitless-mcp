@@ -7,6 +7,7 @@ import { searchMemory, searchMemorySchema } from './tools/search';
 import { getHandoffs, archiveHandoffEntry, archiveHandoffSchema, getHandoffsSchema } from './tools/handoffs';
 import { deleteEntryTool, deleteEntrySchema } from './tools/delete';
 import { updateEntryTool, updateEntrySchema } from './tools/update';
+import { getPinnedContext, getPinnedContextSchema } from './tools/pinned';
 
 interface AuthProps extends Record<string, unknown> {
   claims: {
@@ -94,6 +95,16 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
+      }
+    );
+
+    this.server.tool(
+      'get_pinned_context',
+      'Retrieve all pinned (always-on) entries. Call at session start with your session namespace to load persistent context.',
+      getPinnedContextSchema.shape,
+      async (input: any) => {
+        const results = await getPinnedContext(this.env, userId, provider, input.namespace);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(results) }] };
       }
     );
   }
