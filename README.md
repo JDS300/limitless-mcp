@@ -8,6 +8,8 @@ For more information, visit [limitless-ai.dev](https://limitless-ai.dev).
 
 Limitless runs as a Cloudflare Worker with D1 (SQLite) for structured storage and Vectorize for semantic search. You authenticate with Google OAuth, then store entries that any connected AI client can retrieve via MCP. Each user's data is encrypted at rest with a per-user AES-GCM key derived from your `SERVER_ENCRYPTION_SECRET`.
 
+Cloudflare Workers uses an isolated, per-request execution model — each invocation spins up a fresh context with no persistent memory. Plaintext is never accumulated between requests. Combined with AES-GCM encryption at rest, the hosting provider cannot read stored payloads. See [how Workers works](https://developers.cloudflare.com/workers/reference/how-workers-works/).
+
 For a visual overview, see the [architecture diagram](https://limitless-ai.dev/architecture).
 
 ---
@@ -107,6 +109,11 @@ Your worker will be live at `https://limitless-mcp.<your-subdomain>.workers.dev`
 ---
 
 ## Connecting MCP clients
+
+Limitless supports two integration paths:
+
+- **MCP clients** (Claude Desktop, Claude Code, any MCP-native tool): plug-and-play via the MCP config below.
+- **Non-MCP tools** (ChatGPT, Gemini, any web UI): use the system prompt / custom instructions snippet. This is a fully supported path.
 
 ### Claude / Claude Code
 
