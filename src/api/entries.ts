@@ -28,6 +28,24 @@ export async function handleApiRequest(request: Request, env: Env): Promise<Resp
   const parts = url.pathname.split('/').filter(Boolean); // ['api', 'entries', id?]
   const id    = parts[2];
 
+  // Route /api/relationships and /api/relationships/:id
+  if (parts[1] === 'relationships') {
+    const { handleRelationshipsRequest } = await import('./relationships');
+    return handleRelationshipsRequest(request, env, userId, parts[2]);
+  }
+
+  // Route /api/entries/bulk
+  if (parts[2] === 'bulk' && request.method === 'POST') {
+    const { handleBulkImport } = await import('./bulk');
+    return handleBulkImport(request, env, userId);
+  }
+
+  // Route /api/entries/:id/relationships
+  if (parts[3] === 'relationships' && id) {
+    const { handleRelationshipsRequest } = await import('./relationships');
+    return handleRelationshipsRequest(request, env, userId, undefined, id);
+  }
+
   if (request.method === 'GET'    && !id)  return handleList(url, userId, env);
   if (request.method === 'GET'    &&  id)  return handleGetOne(id, userId, env);
   if (request.method === 'PATCH'  &&  id)  return handlePatch(request, id, userId, env);
