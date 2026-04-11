@@ -35,12 +35,16 @@ export function getAdminHtml(): string {
     .badge-work{border-color:#388bfd44;color:#388bfd}
     .badge-personal{border-color:#3fb95044;color:#3fb950}
     .badge-shared,.badge-pinned{border-color:var(--accent);color:var(--accent)}
+    .badge-superseded{border-color:#da363344;color:#da3633}
     .controls{display:flex;gap:6px;align-items:center}
     .controls select{padding:4px 8px;font-size:12px}
     .btn-pin{background:none;border:1px solid var(--border);padding:4px 8px;border-radius:4px;color:var(--muted)}
     .btn-pin.active{color:var(--accent);border-color:var(--accent)}
     .btn-del{background:none;border:1px solid transparent;padding:4px 8px;border-radius:4px;color:var(--danger)}
     .btn-del:hover{border-color:var(--danger)}
+    .rels-panel{grid-column:1/-1;padding:8px 0;border-top:1px solid var(--border);margin-top:8px;font-size:12px;color:var(--muted)}
+    .rel-row{padding:4px 0;font-family:var(--mono);font-size:12px}
+    .btn-rel{background:none;border:1px solid var(--border);padding:4px 8px;border-radius:4px;color:var(--muted)}
     #load-more-wrap{padding:16px 24px}
     #login{display:flex;flex-direction:column;align-items:center;justify-content:center;
            min-height:80vh;gap:16px}
@@ -71,12 +75,18 @@ export function getAdminHtml(): string {
       </select>
       <select id="f-type">
         <option value="">All types</option>
-        <option value="context">context</option>
-        <option value="memory">memory</option>
+        <option value="identity">identity</option>
+        <option value="rules">rules</option>
+        <option value="catalog">catalog</option>
+        <option value="framework">framework</option>
+        <option value="decision">decision</option>
+        <option value="project">project</option>
         <option value="handoff">handoff</option>
         <option value="resource">resource</option>
+        <option value="memory">memory</option>
       </select>
       <button id="f-pinned">Pinned only</button>
+      <button id="bulk-del" style="display:none;color:var(--danger);border-color:var(--danger)">Delete selected</button>
     </div>
     <div id="entries"></div>
     <div id="load-more-wrap" style="display:none">
@@ -132,6 +142,7 @@ export function getAdminHtml(): string {
       meta.appendChild(badge(ns||'none', ns?'badge-'+ns:''));
       meta.appendChild(badge(entry.type));
       if(pinned) meta.appendChild(badge('pinned','badge-pinned'));
+      if(entry.supersedes) meta.appendChild(badge('supersedes','badge-superseded'));
       if(entry.tags){const t=el('span');t.textContent=entry.tags;meta.appendChild(t);}
       const d=el('span');
       d.textContent='updated '+new Date(entry.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
@@ -141,6 +152,9 @@ export function getAdminHtml(): string {
 
       // Right column: controls
       const controls=el('div','controls');
+
+      const cb=el('input');cb.type='checkbox';cb.className='entry-cb';cb.dataset.id=entry.id;
+      controls.insertBefore(cb,controls.firstChild);
 
       // Namespace dropdown — all options are static strings (no user data in option values)
       const nsSel=el('select'); nsSel.dataset.id=entry.id;
@@ -156,6 +170,11 @@ export function getAdminHtml(): string {
       pinBtn.dataset.id=entry.id; pinBtn.title='Toggle pinned';
       pinBtn.textContent=pinned?'📌':'📍'; // emoji only, not user data
       controls.appendChild(pinBtn);
+
+      const relBtn=el('button','btn-rel');
+      relBtn.dataset.id=entry.id; relBtn.title='View relationships';
+      relBtn.textContent='🔗';
+      controls.appendChild(relBtn);
 
       const delBtn=el('button','btn-del');
       delBtn.dataset.id=entry.id; delBtn.title='Delete';
@@ -180,6 +199,11 @@ export function getAdminHtml(): string {
 
     // Event delegation — changes and clicks on the entry list
     document.getElementById('entries').addEventListener('change',async e=>{
+      if(e.target.classList.contains('entry-cb')){
+        const anyChecked=document.querySelectorAll('.entry-cb:checked').length>0;
+        document.getElementById('bulk-del').style.display=anyChecked?'inline-block':'none';
+        return;
+      }
       const sel=e.target.closest('select[data-id]');
       if(!sel) return;
       const ns=sel.value==='clear'?null:sel.value||null;
@@ -201,7 +225,40 @@ export function getAdminHtml(): string {
         del.closest('.card').remove();
         offset--;
         document.getElementById('status').textContent=offset+' entries';
+        return;
       }
+      const relBtn=e.target.closest('.btn-rel');
+      if(relBtn){
+        const card=relBtn.closest('.card');
+        let panel=card.querySelector('.rels-panel');
+        if(panel){panel.remove();return;}
+        panel=el('div','rels-panel');
+        panel.textContent='Loading...';
+        card.appendChild(panel);
+        const res=await api('/api/entries/'+relBtn.dataset.id+'/relationships');
+        const {results=[]}=await res.json();
+        panel.textContent='';
+        if(results.length===0){panel.textContent='No relationships';return;}
+        results.forEach(r=>{
+          const row=el('div','rel-row');
+          const dir=r.source_id===relBtn.dataset.id?'→':'←';
+          const otherId=r.source_id===relBtn.dataset.id?r.target_id:r.source_id;
+          const validity=r.valid_to?'expired '+new Date(r.valid_to).toLocaleDateString():'current';
+          row.textContent=r.rel_type+' '+dir+' '+otherId.slice(0,8)+'... ('+validity+')';
+          if(r.label){const lb=el('span');lb.textContent=' — '+r.label;lb.style.color='var(--muted)';row.appendChild(lb);}
+          panel.appendChild(row);
+        });
+      }
+    });
+
+    document.getElementById('bulk-del').addEventListener('click',async()=>{
+      const checked=document.querySelectorAll('.entry-cb:checked');
+      if(!confirm('Delete '+checked.length+' entries? This cannot be undone.')) return;
+      for(const cb of checked){
+        await api('/api/entries/'+cb.dataset.id,{method:'DELETE'});
+      }
+      load(true);
+      document.getElementById('bulk-del').style.display='none';
     });
 
     document.getElementById('f-ns').addEventListener('change',e=>{
