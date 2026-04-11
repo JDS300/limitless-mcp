@@ -11,6 +11,7 @@ import { getPinnedContext, getPinnedContextSchema } from './tools/pinned';
 import { getResource, getResourceSchema } from './tools/resource';
 import { bootstrapSession, bootstrapSessionSchema } from './tools/bootstrap';
 import { exploreContext, exploreContextSchema } from './tools/explore';
+import { addRelationshipTool, addRelationshipSchema, expireRelationshipTool, expireRelationshipSchema } from './tools/relationship';
 
 interface AuthProps extends Record<string, unknown> {
   claims: {
@@ -137,6 +138,26 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
       exploreContextSchema.shape,
       async (input: any) => {
         const result = await exploreContext(this.env, userId, provider, input);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      }
+    );
+
+    this.server.tool(
+      'add_relationship',
+      'Create a typed relationship between two entries (e.g. project uses_framework, proposal priced_from catalog)',
+      addRelationshipSchema.shape,
+      async (input: any) => {
+        const result = await addRelationshipTool(this.env, input);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      }
+    );
+
+    this.server.tool(
+      'expire_relationship',
+      'Mark a relationship as no longer current (sets valid_to to now). The relationship remains for historical queries.',
+      expireRelationshipSchema.shape,
+      async (input: any) => {
+        const result = await expireRelationshipTool(this.env, input);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
       }
     );
