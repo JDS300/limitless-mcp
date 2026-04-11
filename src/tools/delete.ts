@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { deleteEntry } from '../db/queries';
+import { deleteRelationshipsByEntry } from '../db/relationships';
 
 export const deleteEntrySchema = z.object({
   id: z.string().uuid(),
@@ -20,6 +21,9 @@ export async function deleteEntryTool(
       message: `No entry found with id ${input.id} for this user`,
     };
   }
+
+  // Remove associated relationships from D1
+  await deleteRelationshipsByEntry(env.DB, input.id);
 
   // Remove vector from Vectorize
   try {

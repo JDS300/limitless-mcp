@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { generateEmbedding } from '../embeddings';
 import { insertEntry } from '../db/queries';
+import { insertRelationship } from '../db/relationships';
 import { deriveUserKey, encryptContent } from '../crypto';
 
 export const storeEntrySchema = z.object({
-  type: z.enum(['context', 'memory', 'handoff', 'resource']),
+  type: z.enum(['identity', 'rules', 'catalog', 'framework', 'decision', 'project', 'handoff', 'resource', 'memory']),
   title: z.string().optional(),
   content: z.string().min(1),
   tags: z.string().optional(),
@@ -12,6 +13,12 @@ export const storeEntrySchema = z.object({
   pinned: z.boolean().optional(),
   resource_name: z.string().optional(),
   resource_location: z.string().optional(),
+  supersedes: z.string().uuid().optional(),
+  relationships: z.array(z.object({
+    target_id: z.string().uuid(),
+    rel_type: z.string(),
+    label: z.string().optional(),
+  })).optional(),
 });
 
 export async function storeEntry(
@@ -45,6 +52,7 @@ export async function storeEntry(
     pinned: input.pinned ? 1 : 0,
     resource_name: input.resource_name ?? null,
     resource_location: input.resource_location ?? null,
+    supersedes: input.supersedes ?? null,
   });
 
   // Upsert vector into Vectorize — if this fails, delete the D1 row to keep stores in sync
@@ -66,6 +74,18 @@ export async function storeEntry(
       .bind(id, user_id)
       .run();
     throw new Error(`Failed to store vector embedding; entry rolled back. ${String(err)}`);
+  }
+
+  // Create relationships if provided
+  if (input.relationships && input.relationships.length > 0) {
+    for (const rel of input.relationships) {
+      await insertRelationship(env.DB, {
+        source_id: id,
+        target_id: rel.target_id,
+        rel_type: rel.rel_type,
+        label: rel.label ?? null,
+      });
+    }
   }
 
   return {

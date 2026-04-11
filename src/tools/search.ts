@@ -6,7 +6,7 @@ import { deriveUserKey, safeDecrypt } from '../crypto';
 
 export const searchMemorySchema = z.object({
   query: z.string().min(1),
-  type: z.enum(['context', 'memory', 'handoff', 'resource']).optional(),
+  type: z.enum(['identity', 'rules', 'catalog', 'framework', 'decision', 'project', 'handoff', 'resource', 'memory']).optional(),
   limit: z.number().int().min(1).max(20).default(5),
   namespace: z.enum(['work', 'personal', 'shared']).optional(),
 });

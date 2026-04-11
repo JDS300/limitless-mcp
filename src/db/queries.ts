@@ -23,7 +23,7 @@ export async function insertEntry(
   entry: {
     id: string;
     user_id: string;
-    type: 'context' | 'memory' | 'handoff' | 'resource';
+    type: string;
     status: 'active' | 'needs_action' | 'actioned';
     title: string | null;
     content: string;
@@ -32,6 +32,7 @@ export async function insertEntry(
     pinned: number;
     resource_name: string | null;
     resource_location: string | null;
+    supersedes: string | null;
   }
 ): Promise<void> {
   const now = Date.now();
@@ -40,14 +41,15 @@ export async function insertEntry(
       `INSERT INTO entries
          (id, user_id, type, status, title, content, tags,
           namespace, pinned, resource_name, resource_location,
-          created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          supersedes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       entry.id, entry.user_id, entry.type, entry.status,
       entry.title, entry.content, entry.tags,
       entry.namespace, entry.pinned,
       entry.resource_name, entry.resource_location,
+      entry.supersedes,
       now, now
     )
     .run();
@@ -126,6 +128,7 @@ export async function updateEntry(
     namespace?: string | null;
     pinned?: number;
     confirmed_at?: number | null;
+    supersedes?: string | null;
   }
 ): Promise<EntryRow | null> {
   const sets: string[] = ['updated_at = ?'];
@@ -137,6 +140,7 @@ export async function updateEntry(
   if ('namespace'    in fields) { sets.push('namespace = ?');    binds.push(fields.namespace ?? null); }
   if (fields.pinned  !== undefined)  { sets.push('pinned = ?');  binds.push(fields.pinned); }
   if ('confirmed_at' in fields) { sets.push('confirmed_at = ?'); binds.push(fields.confirmed_at ?? null); }
+  if ('supersedes'   in fields) { sets.push('supersedes = ?');   binds.push(fields.supersedes ?? null); }
 
   binds.push(id, user_id);
   return db

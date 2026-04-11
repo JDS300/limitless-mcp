@@ -38,4 +38,15 @@ describe('searchMemory namespace filtering', () => {
     const filter = env.VECTORIZE.query.mock.calls[0][1].filter;
     expect(filter).not.toHaveProperty('namespace');
   });
+
+  it('accepts V3 domain types in type filter', async () => {
+    const env = makeEnv([]) as any;
+    await searchMemory(env, 'u1', 'google', { query: 'test', type: 'catalog', limit: 5 });
+    expect(env.VECTORIZE.query).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.objectContaining({
+        filter: expect.objectContaining({ type: 'catalog' }),
+      })
+    );
+  });
 });

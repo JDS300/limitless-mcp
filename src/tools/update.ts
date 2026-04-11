@@ -12,6 +12,7 @@ export const updateEntrySchema = z.object({
   namespace: z.enum(['work', 'personal', 'shared']).nullable().optional(),
   pinned: z.boolean().optional(),
   confirmed_at: z.number().optional(),
+  supersedes: z.string().uuid().nullable().optional(),
 });
 
 export async function updateEntryTool(
@@ -27,6 +28,7 @@ export async function updateEntryTool(
   if ('namespace'    in input) fields.namespace    = input.namespace ?? null;
   if (input.pinned   !== undefined) fields.pinned  = input.pinned ? 1 : 0;
   if (input.confirmed_at !== undefined) fields.confirmed_at = input.confirmed_at;
+  if ('supersedes' in input) fields.supersedes = input.supersedes ?? null;
 
   if (Object.keys(fields).length === 0) {
     return { success: false, entry: null, message: 'No fields to update' };
