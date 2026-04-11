@@ -9,6 +9,7 @@ import { deleteEntryTool, deleteEntrySchema } from './tools/delete';
 import { updateEntryTool, updateEntrySchema } from './tools/update';
 import { getPinnedContext, getPinnedContextSchema } from './tools/pinned';
 import { getResource, getResourceSchema } from './tools/resource';
+import { bootstrapSession, bootstrapSessionSchema } from './tools/bootstrap';
 
 interface AuthProps extends Record<string, unknown> {
   claims: {
@@ -115,6 +116,16 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
       getResourceSchema.shape,
       async (input: any) => {
         const result = await getResource(this.env, userId, provider, input);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      }
+    );
+
+    this.server.tool(
+      'bootstrap_session',
+      'Load session context: identity, rules, active projects, pending handoffs, and recent decisions. Call this at session start with your namespace.',
+      bootstrapSessionSchema.shape,
+      async (input: any) => {
+        const result = await bootstrapSession(this.env, userId, provider, input);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
       }
     );
