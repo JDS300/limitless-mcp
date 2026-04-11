@@ -10,6 +10,7 @@ import { updateEntryTool, updateEntrySchema } from './tools/update';
 import { getPinnedContext, getPinnedContextSchema } from './tools/pinned';
 import { getResource, getResourceSchema } from './tools/resource';
 import { bootstrapSession, bootstrapSessionSchema } from './tools/bootstrap';
+import { exploreContext, exploreContextSchema } from './tools/explore';
 
 interface AuthProps extends Record<string, unknown> {
   claims: {
@@ -126,6 +127,16 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
       bootstrapSessionSchema.shape,
       async (input: any) => {
         const result = await bootstrapSession(this.env, userId, provider, input);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      }
+    );
+
+    this.server.tool(
+      'explore_context',
+      'Walk the relationship graph from an entry to find all connected context. Use this to pull everything related to a client, project, or decision.',
+      exploreContextSchema.shape,
+      async (input: any) => {
+        const result = await exploreContext(this.env, userId, provider, input);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
       }
     );
