@@ -147,7 +147,7 @@ export class LimitlessMCP extends McpAgent<Env, unknown, AuthProps> {
       'Create a typed relationship between two entries (e.g. project uses_framework, proposal priced_from catalog)',
       addRelationshipSchema.shape,
       async (input: any) => {
-        const result = await addRelationshipTool(this.env, input);
+        const result = await addRelationshipTool(this.env, userId, input);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
       }
     );

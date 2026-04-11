@@ -9,11 +9,15 @@ vi.mock('../../src/db/relationships', () => ({
   expireRelationship: vi.fn().mockResolvedValue(true),
 }));
 
+vi.mock('../../src/db/queries', () => ({
+  getEntryById: vi.fn().mockResolvedValue({ id: 'exists', user_id: 'user-1' }),
+}));
+
 const mockEnv = { DB: {} } as any;
 
 describe('addRelationshipTool', () => {
   it('creates a relationship and returns it', async () => {
-    const result = await addRelationshipTool(mockEnv, {
+    const result = await addRelationshipTool(mockEnv, 'user-1', {
       source_id: 's1',
       target_id: 't1',
       rel_type: 'uses_framework',

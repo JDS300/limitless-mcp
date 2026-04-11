@@ -27,6 +27,8 @@ export async function handleBulkImport(
 
   for (let i = 0; i < entries.length; i++) {
     try {
+      // Admin auth currently only supports Google OAuth.
+      // When multi-provider support is added, extract provider from admin token claims.
       const result = await storeEntry(env, userId, 'google', entries[i]);
       results.push({ index: i, id: result.id });
       succeeded++;

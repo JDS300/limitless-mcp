@@ -3,6 +3,7 @@ import {
   insertRelationship,
   expireRelationship,
 } from '../db/relationships';
+import { getEntryById } from '../db/queries';
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -20,6 +21,10 @@ export async function handleRelationshipsRequest(
 ): Promise<Response> {
   // GET /api/entries/:id/relationships
   if (request.method === 'GET' && entryId) {
+    // Verify entry belongs to this user
+    const entry = await getEntryById(env.DB, entryId, userId);
+    if (!entry) return json({ error: 'Not found' }, 404);
+
     const url = new URL(request.url);
     const includeExpired = url.searchParams.get('include_expired') === 'true';
     const relType = url.searchParams.get('rel_type') ?? undefined;
@@ -37,6 +42,12 @@ export async function handleRelationshipsRequest(
     if (!source_id || !target_id || !rel_type) {
       return json({ error: 'source_id, target_id, and rel_type are required' }, 400);
     }
+
+    // Verify both entries belong to this user
+    const source = await getEntryById(env.DB, source_id, userId);
+    if (!source) return json({ error: 'Source entry not found' }, 404);
+    const target = await getEntryById(env.DB, target_id, userId);
+    if (!target) return json({ error: 'Target entry not found' }, 404);
 
     const rel = await insertRelationship(env.DB, { source_id, target_id, rel_type, label });
     return json(rel);

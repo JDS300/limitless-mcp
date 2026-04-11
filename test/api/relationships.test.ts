@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { handleRelationshipsRequest } from '../../src/api/relationships';
 
+vi.mock('../../src/db/queries', () => ({
+  getEntryById: vi.fn().mockResolvedValue({ id: 'exists', user_id: 'user-1' }),
+}));
+
 vi.mock('../../src/db/relationships', () => ({
   getRelationshipsByEntry: vi.fn().mockResolvedValue([
     { id: 'r1', source_id: 's1', target_id: 't1', rel_type: 'related_to', label: null, valid_from: 1000, valid_to: null, created_at: 1000 },
