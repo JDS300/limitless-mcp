@@ -10,16 +10,28 @@ export interface UserRow {
 export interface EntryRow {
   id: string;
   user_id: string;
-  type: 'context' | 'memory' | 'handoff' | 'resource';
+  type: 'identity' | 'rules' | 'catalog' | 'framework' | 'decision' | 'project' | 'handoff' | 'resource' | 'memory';
   status: 'active' | 'needs_action' | 'actioned';
   title: string | null;
-  content: string;                    // encrypted at rest, decrypted in responses
+  content: string;
   tags: string | null;
-  namespace: string | null;           // 'work' | 'personal' | 'shared' | null
-  pinned: number;                     // 0 | 1 (SQLite boolean)
-  resource_name: string | null;       // type='resource' only
-  resource_location: string | null;   // type='resource' only
-  confirmed_at: number | null;        // unix ms
+  namespace: string | null;
+  pinned: number;
+  resource_name: string | null;
+  resource_location: string | null;
+  confirmed_at: number | null;
+  supersedes: string | null;
   created_at: number;
   updated_at: number;
+}
+
+export interface RelationshipRow {
+  id: string;
+  source_id: string;
+  target_id: string;
+  rel_type: string;
+  label: string | null;
+  valid_from: number;
+  valid_to: number | null;
+  created_at: number;
 }
