@@ -146,7 +146,8 @@ Add to your custom instructions:
 
 ```
 I use a personal memory tool called Limitless at https://limitless-mcp.<your-subdomain>.workers.dev.
-At the start of each session, retrieve my handoffs and search for relevant context before answering.
+At the start of each session, retrieve my context (identity, active projects, handoffs) and search
+for relevant information before answering. Confirmed entries are facts; hedge unconfirmed ones.
 ```
 
 ---
